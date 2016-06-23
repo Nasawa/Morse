@@ -1,22 +1,15 @@
 package com.anigeek.morse;
 
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import org.json.JSONObject;
-
 import java.net.URISyntaxException;
 
-import io.socket.client.Ack;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
@@ -24,12 +17,13 @@ import io.socket.emitter.Emitter;
 
 public class MainActivity extends AppCompatActivity
 {
+	private static final String INVALID_INPUT = "Invalid input: ";
 	private Converter converter;
 	private EditText morseIn;
 	private TextView morseOut;
 	private Beeper beeper;
 	private View tView;
-	private String myid;
+	//private String myid;
 	private Socket socket;
 	private boolean disregard = false;
 
@@ -38,21 +32,8 @@ public class MainActivity extends AppCompatActivity
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-		setSupportActionBar(toolbar);
 
-		FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-		fab.setOnClickListener(new View.OnClickListener()
-		{
-			@Override
-			public void onClick(View view)
-			{
-				Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-				        .setAction("Action", null).show();
-			}
-		});
-
-		tView = (View) findViewById(R.id.contentroot);
+		tView = findViewById(R.id.contentroot);
 
 		try
 		{
@@ -67,22 +48,23 @@ public class MainActivity extends AppCompatActivity
 		socket.on("id", id);
 		socket.connect();
 
-		morseIn = (EditText)findViewById(R.id.morsein);
-		morseOut = (TextView)findViewById(R.id.morseout);
-		Button convertButton = (Button)findViewById(R.id.convertbutton);
+		morseIn = (EditText) findViewById(R.id.morsein);
+		morseOut = (TextView) findViewById(R.id.morseout);
+		Button convertButton = (Button) findViewById(R.id.convertbutton);
 
 		converter = new Converter();
 		beeper = new Beeper();
 
-		convertButton.setOnClickListener(new Button.OnClickListener()
-		{
-			@Override
-			public void onClick(View v)
+		if (convertButton != null)
+			convertButton.setOnClickListener(new Button.OnClickListener()
 			{
-				disregard = true;
-				convertMorse();
-			}
-		});
+				@Override
+				public void onClick(View v)
+				{
+					disregard = true;
+					convertMorse();
+				}
+			});
 	}
 
 	private void convertMorse()
@@ -94,7 +76,10 @@ public class MainActivity extends AppCompatActivity
 			socket.emit("message", "morse", con);
 			morseOut.setText(con);
 		}
-		catch(Exception e){}
+		catch (Exception e)
+		{
+			morseOut.setText(String.format("%s%s", INVALID_INPUT, morseIn.getText().toString().trim()));
+		}
 	}
 
 	private void convertMorse(String alpha)
@@ -106,7 +91,10 @@ public class MainActivity extends AppCompatActivity
 			beeper.beep(con);
 			morseOut.setText(con);
 		}
-		catch (Exception e){}
+		catch (Exception e)
+		{
+			morseOut.setText(String.format("%s%s", INVALID_INPUT, alpha));
+		}
 	}
 
 	private void convertAlpha(String morse)
@@ -131,31 +119,6 @@ public class MainActivity extends AppCompatActivity
 		socket.disconnect();
 	}
 
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu)
-	{
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.menu_main, menu);
-		return true;
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item)
-	{
-		// Handle action bar item clicks here. The action bar will
-		// automatically handle clicks on the Home/Up button, so long
-		// as you specify a parent activity in AndroidManifest.xml.
-		int id = item.getItemId();
-
-		//noinspection SimplifiableIfStatement
-		if (id == R.id.action_settings)
-		{
-			return true;
-		}
-
-		return super.onOptionsItemSelected(item);
-	}
-
 	private Emitter.Listener id = new Emitter.Listener()
 	{
 		@Override
@@ -166,8 +129,8 @@ public class MainActivity extends AppCompatActivity
 				@Override
 				public void run()
 				{
-					myid = (String)args[0];
-					Snackbar.make(tView, "Your ID is " + myid, Snackbar.LENGTH_SHORT).show();
+					//myid = (String) args[0];
+					//Snackbar.make(tView, "Your ID is " + myid, Snackbar.LENGTH_SHORT).show();
 					socket.on("morse", msg);
 				}
 			});
@@ -184,8 +147,8 @@ public class MainActivity extends AppCompatActivity
 				@Override
 				public void run()
 				{
-					if(!disregard)
-						convertAlpha((String)args[0]);
+					if (!disregard)
+						convertAlpha((String) args[0]);
 					disregard = false;
 				}
 			});
