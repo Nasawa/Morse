@@ -1,14 +1,21 @@
 package com.anigeek.morse;
 
+import android.app.Activity;
+
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 
 import io.socket.client.IO;
 import io.socket.client.Socket;
@@ -20,12 +27,14 @@ public class MainActivity extends AppCompatActivity
 	private static final String INVALID_INPUT = "Invalid input: ";
 	private Converter converter;
 	private EditText morseIn;
-	private TextView morseOut;
 	private Beeper beeper;
 	private View tView;
-	//private String myid;
 	private Socket socket;
 	private boolean disregard = false;
+	private ArrayList messages;
+	private ArrayAdapter adapter;
+	private Activity activity;
+	private ActiveElement active;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -34,22 +43,20 @@ public class MainActivity extends AppCompatActivity
 		setContentView(R.layout.activity_main);
 
 		tView = findViewById(R.id.contentroot);
+		getSocket();
 
-		try
-		{
-			socket = IO.socket("http://clipt.azurewebsites.net");
-		}
-		catch (URISyntaxException e)
-		{
-			e.printStackTrace();
-		}
+		activity = this;
+
+		messages = Helper.getMessages(this);
+		ListView listView = (ListView) findViewById(R.id.msglist);
+		adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, messages);
+		listView.setAdapter(adapter);
 
 		socket.on("connect", onConnect);
 		socket.on("id", id);
 		socket.connect();
 
 		morseIn = (EditText) findViewById(R.id.morsein);
-		morseOut = (TextView) findViewById(R.id.morseout);
 		Button convertButton = (Button) findViewById(R.id.convertbutton);
 
 		converter = new Converter();
@@ -63,8 +70,50 @@ public class MainActivity extends AppCompatActivity
 				{
 					disregard = true;
 					convertMorse();
+					morseIn.setText("");
 				}
 			});
+
+		listView.setOnItemClickListener(new AdapterView.OnItemClickListener()
+		{
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view, int position, long id)
+			{
+				try
+				{
+					if (active != null)
+						((TextView) active.view).setText(active.morse);
+
+					TextView tv = (TextView) view;
+					String temp = tv.getText().toString();
+					beeper.beep(temp);
+					active = new ActiveElement(temp, view);
+					tv.setText(converter.toAlpha(temp));
+				}
+				catch (InterruptedException e)
+				{
+					Log.d("ListViewClick", e.getMessage());
+				}
+			}
+		});
+	}
+
+	private void getSocket()
+	{
+		try
+		{
+			socket = IO.socket("http://clipt.azurewebsites.net");
+		}
+		catch (URISyntaxException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	private void addMessage(String msg)
+	{
+		messages.add(msg);
+		adapter.notifyDataSetInvalidated();
 	}
 
 	private void convertMorse()
@@ -74,11 +123,11 @@ public class MainActivity extends AppCompatActivity
 			String con = converter.toMorse(morseIn.getText().toString().trim());
 			beeper.beep(con);
 			socket.emit("message", "morse", con);
-			morseOut.setText(con);
+			addMessage(con);
 		}
 		catch (Exception e)
 		{
-			morseOut.setText(String.format("%s%s", INVALID_INPUT, morseIn.getText().toString().trim()));
+			snack(String.format("%s%s", INVALID_INPUT, morseIn.getText().toString().trim()));
 		}
 	}
 
@@ -86,14 +135,13 @@ public class MainActivity extends AppCompatActivity
 	{
 		try
 		{
-			morseIn.setText(alpha.toLowerCase());
 			String con = converter.toMorse(alpha);
 			beeper.beep(con);
-			morseOut.setText(con);
+			addMessage(con);
 		}
 		catch (Exception e)
 		{
-			morseOut.setText(String.format("%s%s", INVALID_INPUT, alpha));
+			snack(String.format("%s%s", INVALID_INPUT, alpha));
 		}
 	}
 
@@ -101,9 +149,8 @@ public class MainActivity extends AppCompatActivity
 	{
 		try
 		{
-			morseIn.setText(converter.toAlpha(morse));
 			beeper.beep(morse);
-			morseOut.setText(morse);
+			addMessage(morse);
 		}
 		catch (Exception e)
 		{
@@ -112,11 +159,20 @@ public class MainActivity extends AppCompatActivity
 	}
 
 	@Override
-	public void onDestroy()
+	public void onStop()
 	{
-		super.onDestroy();
+		super.onStop();
 
 		socket.disconnect();
+		Helper.saveMessages(activity, messages);
+	}
+
+	public void onStart()
+	{
+		super.onStart();
+
+		if(!socket.connected())
+			socket.connect();
 	}
 
 	private Emitter.Listener id = new Emitter.Listener()
@@ -165,9 +221,14 @@ public class MainActivity extends AppCompatActivity
 				@Override
 				public void run()
 				{
-					Snackbar.make(tView, "Connected to Morse chat", Snackbar.LENGTH_SHORT).show();
+					snack("Connected to Morse chat");
 				}
 			});
 		}
 	};
+
+	private void snack(String msg)
+	{
+		Snackbar.make(tView, msg, Snackbar.LENGTH_SHORT).show();
+	}
 }
