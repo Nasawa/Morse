@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="persistence_options">
+        <item>Save no messages</item>
+        <item>Save messages by channel</item>
+        <item>Save all messages</item>
+    </string-array>
+</resources>

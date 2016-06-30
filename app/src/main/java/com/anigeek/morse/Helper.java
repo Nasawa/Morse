@@ -10,9 +10,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 
-public class Helper
+class Helper
 {
-	public static void saveMessages(Activity activity, ArrayList<String> messages)
+	static void saveMessages(Activity activity, ArrayList<String> messages)
 	{
 		SharedPreferences preferences = activity.getPreferences(Context.MODE_PRIVATE);
 		SharedPreferences.Editor editor = preferences.edit();
@@ -21,14 +21,29 @@ public class Helper
 		messageSet.clear();
 		messageSet.addAll(messages);
 		editor.putStringSet("messages", messageSet);
-		editor.commit();
+		editor.apply();
 	}
 
-	public static ArrayList getMessages(Activity activity)
+	public static ArrayList<Object> getMessages(Activity activity)
 	{
 		SharedPreferences preferences = activity.getPreferences(Context.MODE_PRIVATE);
 		Set<String> messageSet = preferences.getStringSet("messages", new HashSet<String>());
-		ArrayList temp = new ArrayList(Arrays.asList(messageSet.toArray()));
-		return temp;
+		return new ArrayList<>(Arrays.asList(messageSet.toArray()));
+	}
+
+	static void savePreferences(Activity activity)
+	{
+		SharedPreferences preferences = activity.getPreferences(Context.MODE_PRIVATE);
+		SharedPreferences.Editor editor = preferences.edit();
+		editor.putString("Channel", MorseOptions.getChannel());
+		editor.putInt("History", MorseOptions.getShowHistory());
+		editor.apply();
+	}
+
+	static void getPreferences(Activity activity)
+	{
+		SharedPreferences preferences = activity.getPreferences(Context.MODE_PRIVATE);
+		MorseOptions.setChannel(preferences.getString("Channel", "morse"));
+		MorseOptions.setShowHistory(preferences.getInt("History", 0));
 	}
 }
