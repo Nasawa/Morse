@@ -223,6 +223,7 @@ public class MainActivity extends AppCompatActivity implements SettingsDialog.Se
 
 		socket.disconnect();
 		Helper.saveMessages(activity, messages);
+		Helper.savePreferences(activity);
 	}
 
 	public void onStart()
@@ -299,9 +300,12 @@ public class MainActivity extends AppCompatActivity implements SettingsDialog.Se
 	@Override
 	public void onDialogPositiveClick(DialogFragment dialog)
 	{
+		socket.off("id", id);
+		socket.off(channel, msg);
 		socket.disconnect();
-		Helper.savePreferences(activity);
 		channel = MorseOptions.getChannel();
+		Helper.savePreferences(activity);
+		socket.on("id", id);
 		socket.connect();
 		dialog.dismiss();
 	}

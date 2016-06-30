@@ -21,7 +21,7 @@ class Helper
 		messageSet.clear();
 		messageSet.addAll(messages);
 		editor.putStringSet("messages", messageSet);
-		editor.apply();
+		editor.commit();
 	}
 
 	public static ArrayList<Object> getMessages(Activity activity)
@@ -37,7 +37,7 @@ class Helper
 		SharedPreferences.Editor editor = preferences.edit();
 		editor.putString("Channel", MorseOptions.getChannel());
 		editor.putInt("History", MorseOptions.getShowHistory());
-		editor.apply();
+		editor.commit();
 	}
 
 	static void getPreferences(Activity activity)
